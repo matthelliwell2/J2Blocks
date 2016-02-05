@@ -24,10 +24,11 @@ package net.morbz.minecraft.world;
 * SOFTWARE.
 */
 
+import java.io.Serializable;
+
 import net.morbz.minecraft.blocks.IBlock;
 import net.morbz.minecraft.tags.CompoundTagFactory;
 import net.morbz.minecraft.tags.ITagProvider;
-
 import org.jnbt.ByteArrayTag;
 import org.jnbt.ByteTag;
 import org.jnbt.Tag;
@@ -37,7 +38,7 @@ import org.jnbt.Tag;
  * 
  * @author MorbZ
  */
-public class Section implements ITagProvider, IBlockContainer {
+class Section implements ITagProvider, IBlockContainer, Serializable {
 	/**
 	 * The height in blocks of a section
 	 */
@@ -46,16 +47,16 @@ public class Section implements ITagProvider, IBlockContainer {
 	/**
 	 * The total number of blocks in a section
 	 */
-	public static final int BLOCKS_PER_SECTION = 
+	private static final int BLOCKS_PER_SECTION =
 		Chunk.BLOCKS_PER_CHUNK_SIDE * Chunk.BLOCKS_PER_CHUNK_SIDE * SECTION_HEIGHT;
 	
-	private byte[] blockIds = new byte[BLOCKS_PER_SECTION];
-	private byte[] transparency = new byte[BLOCKS_PER_SECTION];
-	private NibbleArray blockData = new NibbleArray(BLOCKS_PER_SECTION);
-	private NibbleArray skyLight = new NibbleArray(BLOCKS_PER_SECTION);
+	private final byte[] blockIds = new byte[BLOCKS_PER_SECTION];
+	private final byte[] transparency = new byte[BLOCKS_PER_SECTION];
+	private final NibbleArray blockData = new NibbleArray(BLOCKS_PER_SECTION);
+	private final NibbleArray skyLight = new NibbleArray(BLOCKS_PER_SECTION);
 	private int blockCount = 0;
-	private int y;
-	private IBlockContainer parent;
+	private final int y;
+	private final IBlockContainer parent;
 	
 	/**
 	 * Creates a new instance.

@@ -24,15 +24,17 @@ package net.morbz.minecraft.blocks;
 * SOFTWARE.
 */
 
+import java.io.Serializable;
+
 /**
  * This class defines all the basic block with their IDs.
  * 
  * @author MorbZ
  */
 @SuppressWarnings("javadoc")
-public class Material {
-	private int value;
-	private int transparency;
+public class Material implements Serializable {
+	private final int value;
+	private final int transparency;
 	
 	private Material(int value, int transparency) {
 		this.value = value;

@@ -24,13 +24,14 @@ package net.morbz.minecraft.world;
 * SOFTWARE.
 */
 
+import java.io.Serializable;
+
 import net.morbz.minecraft.blocks.CustomBlock;
 import net.morbz.minecraft.blocks.IBlock;
 import net.morbz.minecraft.blocks.Material;
 import net.morbz.minecraft.tags.CompoundTagFactory;
 import net.morbz.minecraft.tags.ITagProvider;
 import net.morbz.minecraft.tags.ListTagFactory;
-
 import org.jnbt.ByteTag;
 import org.jnbt.CompoundTag;
 import org.jnbt.IntArrayTag;
@@ -44,21 +45,22 @@ import org.jnbt.Tag;
  * 
  * @author MorbZ
  */
-public class Chunk implements ITagProvider, IBlockContainer {
+class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	/**
 	 * Sections per chunk
 	 */
-	public static final int SECTIONS_PER_CHUNK = 16;
+	private static final int SECTIONS_PER_CHUNK = 16;
 	
 	/**
 	 * Blocks per chunk side
 	 */
 	public static final int BLOCKS_PER_CHUNK_SIDE = 16;
 	
-	private Section[] sections = new Section[SECTIONS_PER_CHUNK];
-	private int[][] heightMap = new int[BLOCKS_PER_CHUNK_SIDE][BLOCKS_PER_CHUNK_SIDE];
-	private int xPos, zPos;
-	private IBlockContainer parent;
+	private final Section[] sections = new Section[SECTIONS_PER_CHUNK];
+	private final int[][] heightMap = new int[BLOCKS_PER_CHUNK_SIDE][BLOCKS_PER_CHUNK_SIDE];
+	private final int xPos;
+	private final int zPos;
+	private final IBlockContainer parent;
 	
 	/**
 	 * Creates a new instance.
@@ -135,8 +137,7 @@ public class Chunk implements ITagProvider, IBlockContainer {
 		
 		if(section != null) {
 			int blockY = y % Section.SECTION_HEIGHT;
-			byte light = section.getSkyLight(x, blockY, z);
-			return light;
+			return section.getSkyLight(x, blockY, z);
 		}
 		return World.DEFAULT_SKY_LIGHT;
 	}

@@ -24,6 +24,8 @@ package net.morbz.minecraft.world;
 * SOFTWARE.
 */
 
+import java.io.Serializable;
+
 import net.morbz.minecraft.blocks.Material;
 
 /**
@@ -34,8 +36,8 @@ import net.morbz.minecraft.blocks.Material;
  * 
  * @author MorbZ
  */
-public class DefaultLayers {
-	private Material[] layers = new Material[World.MAX_HEIGHT];
+public class DefaultLayers implements Serializable {
+	private final Material[] layers = new Material[World.MAX_HEIGHT];
 	
 	/**
 	 * Sets the layer at the given Y-coordinate with the given material.
@@ -94,9 +96,6 @@ public class DefaultLayers {
 	 * Checks whether the Y-coordinate is valid.
 	 */
 	private boolean validLayer(int y) {
-		if(y > layers.length - 1 || y < 0) {
-			return false;
-		}
-		return true;
+		return !(y > layers.length - 1 || y < 0);
 	}
 }

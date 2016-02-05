@@ -26,10 +26,10 @@ package net.morbz.minecraft.world;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 
 import net.morbz.minecraft.blocks.IBlock;
 import net.unknown.RegionFile;
-
 import org.jnbt.NBTOutputStream;
 
 /** 
@@ -37,22 +37,23 @@ import org.jnbt.NBTOutputStream;
  * 
  * @author MorbZ
  */
-public class Region implements IBlockContainer {
+class Region implements IBlockContainer, Serializable {
 	/**
 	 * Chunks per region side
 	 */
-	public static final int CHUNKS_PER_REGION_SIDE = 32;
+	private static final int CHUNKS_PER_REGION_SIDE = 32;
 	
 	/**
 	 * Blocks per region side
 	 */
 	public static final int BLOCKS_PER_REGION_SIDE = CHUNKS_PER_REGION_SIDE * Chunk.BLOCKS_PER_CHUNK_SIDE;
 	
-	private Chunk[][] chunks = new Chunk[CHUNKS_PER_REGION_SIDE][CHUNKS_PER_REGION_SIDE];
-	private DefaultLayers layers;
+	private final Chunk[][] chunks = new Chunk[CHUNKS_PER_REGION_SIDE][CHUNKS_PER_REGION_SIDE];
+	private final DefaultLayers layers;
 	
-	private int xPos, zPos;
-	private IBlockContainer parent;
+	private final int xPos;
+	private final int zPos;
+	transient private IBlockContainer parent;
 	
 	/**
 	 * Creates a new instance.
@@ -112,8 +113,7 @@ public class Region implements IBlockContainer {
 		if(chunk != null) {
 			int blockX = x % Chunk.BLOCKS_PER_CHUNK_SIDE;
 			int blockZ = z % Chunk.BLOCKS_PER_CHUNK_SIDE;
-			byte light = chunk.getSkyLight(blockX, y, blockZ);
-			return light;
+			return chunk.getSkyLight(blockX, y, blockZ);
 		}
 		return World.DEFAULT_SKY_LIGHT;
 	}
@@ -226,11 +226,8 @@ public class Region implements IBlockContainer {
 				for(int z = 0; z < CHUNKS_PER_REGION_SIDE; z++) {
 					Chunk chunk = chunks[x][z];
 					if(chunk != null && chunk.hasBlocks()) {
-						NBTOutputStream out = new NBTOutputStream(regionFile.getChunkDataOutputStream(x, z), false);
-						try {
+						try (NBTOutputStream out = new NBTOutputStream(regionFile.getChunkDataOutputStream(x, z), false)) {
 							out.writeTag(chunks[x][z].getTag());
-						} finally {
-							out.close();
 						}
 					}
 				}
@@ -238,5 +235,9 @@ public class Region implements IBlockContainer {
 		} finally {
 			regionFile.close();
 		}
+	}
+
+	public void setParent(final IBlockContainer parent) {
+		this.parent = parent;
 	}
 }

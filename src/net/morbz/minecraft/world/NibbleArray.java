@@ -24,14 +24,16 @@ package net.morbz.minecraft.world;
 * SOFTWARE.
 */
 
+import java.io.Serializable;
+
 /**
  * This is an array for nibbles (4-bit values).
  * 
  * @author MorbZ
  */
-public class NibbleArray {
-	private byte[] bytes;
-	private int size;
+class NibbleArray implements Serializable {
+	private final byte[] bytes;
+	private final int size;
 	
 	/**
 	 * Creates a new instance.

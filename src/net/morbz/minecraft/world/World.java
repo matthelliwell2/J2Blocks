@@ -29,13 +29,12 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-
-import org.jnbt.NBTOutputStream;
 
 import net.morbz.minecraft.blocks.IBlock;
 import net.morbz.minecraft.level.Level;
+import org.jnbt.NBTOutputStream;
+import org.matthelliwell.cache.FileBackedCache;
 
 /**
  * The main class for generating a Minecraft map.
@@ -58,8 +57,9 @@ public class World implements IBlockContainer {
 	 */
 	public static final byte DEFAULT_SKY_LIGHT = 0xF;
 	
-	private Map<Point, Region> regions = new HashMap<Point, Region>();
-	private Level level;
+	private final Map<Point, Region> regions = new FileBackedCache<>(50, this::onRegionLoaded);
+
+    private final Level level;
 	private DefaultLayers layers;
 	
 	/**
@@ -167,9 +167,7 @@ public class World implements IBlockContainer {
 	 */
 	@Override
 	public void spreadSkyLight(byte light) {
-		for(Region region : regions.values()) {
-			region.spreadSkyLight(light);
-		}
+		// Not used
 	}
 	
 	/**
@@ -205,69 +203,55 @@ public class World implements IBlockContainer {
 		
 		// Write session.lock
         File sessionLockFile = new File(levelDir, "session.lock");
-        System.out.println("Writing file: " + sessionLockFile);
-        DataOutputStream dos = new DataOutputStream(new FileOutputStream(sessionLockFile));
-        try {
-        	dos.writeLong(System.currentTimeMillis());
-        } finally {
-        	dos.close();
+        System.out.println("Writing session lock file: " + sessionLockFile);
+        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(sessionLockFile))) {
+            dos.writeLong(System.currentTimeMillis());
         }
 		
 		// Write level.dat
 		File levelFile = new File(levelDir, "level.dat");
-		System.out.println("Writing file: " + levelFile);
+		System.out.println("Writing level file: " + levelFile);
 		FileOutputStream fos = new FileOutputStream(levelFile);
-		NBTOutputStream nbtOut = new NBTOutputStream(fos, true);
-		try {
-			nbtOut.writeTag(level.getTag());
-		} finally {
-			nbtOut.close();
-		}
-		
-		// Calculate height maps
-		System.out.println("Calculate height maps");
-		for(Region region : regions.values()) {
-			region.calculateHeightMap();
-		}
-		
-		// Set sky light
-		System.out.println("Adding sky light");
-		addSkyLight();
-		
-		// Spread sky light
-		System.out.print("Spreading sky light ");
-		for(int i = DEFAULT_SKY_LIGHT; i > 1; i--) {
-			spreadSkyLight((byte)i);
-			System.out.print(".");
-		}
-		System.out.println();
-		
-		// Iterate regions
-		for(Map.Entry<Point, Region> entry : regions.entrySet()) {
-			Point point = entry.getKey();
-			Region region = entry.getValue();
-			
-			// Save region
-			File regionFile = new File(regionDir, "r." + point.x + "." + point.y + ".mca");
-			System.out.println("Writing file: " + regionFile);
-			region.writeToFile(regionFile);
-		}
+        try (NBTOutputStream nbtOut = new NBTOutputStream(fos, true)) {
+            nbtOut.writeTag(level.getTag());
+        }
+
+		processRegions(regionDir);
 		
 		System.out.println("Done");
 		return levelDir;
 	}
-	
-	/**
-	 * Adds the sky light. Starts from top the top of each column and sets sky light to full, up to 
-	 * the first non-transparent block.
-	 */
-	private void addSkyLight() {
-		for(Region region : regions.values()) {
+
+	private void processRegions(final File regionDir) throws IOException {
+		for( final Point point : regions.keySet()) {
+			System.out.println("Processing region " + point);
+			final Region region = regions.get(point);
+			region.calculateHeightMap();
 			region.addSkyLight();
+			for(int i = DEFAULT_SKY_LIGHT; i > 1; i--) {
+				region.spreadSkyLight((byte)i);
+			}
+
+			File regionFile = new File(regionDir, "r." + point.x + "." + point.y + ".mca");
+			System.out.println("Writing region file: " + regionFile);
+			region.writeToFile(regionFile);
+
+            // Drop the region once processed to try and speed up the serialisation
+            regions.remove(point);
 		}
+
+        // Remove all regions so temp dir is removed
+        regions.clear();
+
 	}
 	
+
 	private boolean dirExists(File f) {
 		return(f.exists() && f.isDirectory());
 	}
+
+    private void onRegionLoaded(final Point point, final Region region) {
+        region.setParent(this);
+
+    }
 }
