@@ -4,6 +4,10 @@ J2Blocks aims to provide a simple library for custom map generation. In order to
 
 [→ J2Blocks Documentation](http://docs.morbz.de/j2blocks/)
 
+This fork has been modified to use the FileBackedCache for regions for that it can support a large number of regions
+without running out of memory. However, the generates worlds currently sometimes have some corrupt chunks in thme for
+some unknown reason.
+
 Example
 ------
 In this example we want to create a Minecraft world that is paved with melon-blocks. We want to create a huge structure of glass and want to set door on top of it. From the [Example.java](https://github.com/MorbZ/J2Blocks/blob/master/doc/Example.java):

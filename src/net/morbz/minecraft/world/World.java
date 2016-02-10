@@ -57,7 +57,7 @@ public class World implements IBlockContainer {
 	 */
 	public static final byte DEFAULT_SKY_LIGHT = 0xF;
 	
-	private final Map<Point, Region> regions = new FileBackedCache<>(50, this::onRegionLoaded);
+	private final Map<Point, Region> regions = new FileBackedCache<>(40, this::onRegionLoaded);
 
     private final Level level;
 	private DefaultLayers layers;
@@ -81,7 +81,21 @@ public class World implements IBlockContainer {
 		this.level = level;
 		this.layers = layers;
 	}
-	
+
+	public void setBlocks(int x, int z, IBlock[] blocks) {
+        if ( blocks.length == 0 || blocks.length > 255 ) {
+            return;
+        }
+
+        Region region = getRegion(x, z, true);
+
+        // Set block
+        int blockX = getRegionCoord(x);
+        int blockZ = getRegionCoord(z);
+
+        region.setBlocks(blockX, blockZ, blocks);
+    }
+
 	/**
 	 * Sets a block at the given world position.
 	 * 
@@ -242,7 +256,6 @@ public class World implements IBlockContainer {
 
         // Remove all regions so temp dir is removed
         regions.clear();
-
 	}
 	
 
@@ -252,6 +265,5 @@ public class World implements IBlockContainer {
 
     private void onRegionLoaded(final Point point, final Region region) {
         region.setParent(this);
-
     }
 }
