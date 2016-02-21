@@ -279,12 +279,18 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 				factory.add(section.getTag());
 			}
 		}
-		
+
+		// Chunk coords should be number of chunk relative to origin of the world not relative to the containing
+		// region
+		final Region region = (Region)parent;
+		final int xcoord = region.getX() * Region.CHUNKS_PER_REGION_SIDE + xPos;
+		final int zcoord = region.getZ() * Region.CHUNKS_PER_REGION_SIDE + zPos;
+
 		// Make level tags
 		CompoundTagFactory factory2 = new CompoundTagFactory("Level");
 		factory2.set(factory.getTag());
-		factory2.set(new IntTag("xPos", xPos));
-		factory2.set(new IntTag("zPos", zPos));
+		factory2.set(new IntTag("xPos", xcoord));
+		factory2.set(new IntTag("zPos", zcoord));
 		factory2.set(new LongTag("LastUpdate", System.currentTimeMillis()));
 		factory2.set(new ByteTag("V", (byte)1));
 		factory2.set(new ByteTag("LightPopulated", (byte)1));

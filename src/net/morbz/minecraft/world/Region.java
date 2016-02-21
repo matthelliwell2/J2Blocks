@@ -41,7 +41,7 @@ class Region implements IBlockContainer, Serializable {
 	/**
 	 * Chunks per region side
 	 */
-	private static final int CHUNKS_PER_REGION_SIDE = 32;
+	public static final int CHUNKS_PER_REGION_SIDE = 32;
 	
 	/**
 	 * Blocks per region side

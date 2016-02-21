@@ -57,7 +57,7 @@ public class World implements IBlockContainer {
 	 */
 	public static final byte DEFAULT_SKY_LIGHT = 0xF;
 	
-	private final Map<Point, Region> regions = new FileBackedCache<>(40, this::onRegionLoaded);
+	private final Map<Point, Region> regions = new FileBackedCache<>(30, this::onRegionLoaded);
 
     private final Level level;
 	private DefaultLayers layers;
