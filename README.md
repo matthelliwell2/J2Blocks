@@ -1,5 +1,11 @@
 **A Java library for easy generation of Minecraft worlds**
 
+The fork differs from the master branch is the following ways:
+1. Bug fix so the correct chunk coordinates are saved
+2. Convenience function to set a column of blocks on a single method call.
+3. The ability to handle large numbers of regions by using an LRU cache backed by saving the regions to disk.
+4. Project has been Mavenised.
+
 J2Blocks aims to provide a simple library for custom map generation. In order to use this library it is not necessary to deal with things like regions, chunks and block data. However it aims to implement all map features that Minecraft offers. Please keep in mind that this is still beta.
 
 [→ J2Blocks Documentation](http://docs.morbz.de/j2blocks/)
@@ -13,14 +19,14 @@ Example
 In this example we want to create a Minecraft world that is paved with melon-blocks. We want to create a huge structure of glass and want to set door on top of it. From the [Example.java](https://github.com/MorbZ/J2Blocks/blob/master/doc/Example.java):
 
 	// Create the base layers of the generated world.
-	// We set the bottom layer of the world to be bedrock and the 20 layers above to be melon 
+	// We set the bottom layer of the world to be bedrock and the 20 layers above to be melon
 	// blocks.
 	DefaultLayers layers = new DefaultLayers();
 	layers.setLayer(0, Material.BEDROCK);
 	layers.setLayers(1, 20, Material.MELON_BLOCK);
 
 	// Create the internal Minecraft world generator.
-	// We use a flat generator. We do this to make sure that the whole world will be paved 
+	// We use a flat generator. We do this to make sure that the whole world will be paved
 	// with melons and not just the part we generated.
 	IGenerator generator = new FlatGenerator(layers);
 
@@ -34,7 +40,7 @@ In this example we want to create a Minecraft world that is paved with melon-blo
 	// Now we create the world. This is where we can set our own blocks.
 	World world = new World(level, layers);
 
-	// Create a huge structure of glass that has an area of 100x100 blocks and is 50 blocks 
+	// Create a huge structure of glass that has an area of 100x100 blocks and is 50 blocks
 	// height. On top of the glass structure we put a layer of grass.
 	for(int x = 0; x < 100; x++) {
 		for(int z = 0; z < 100; z++) {
@@ -42,13 +48,13 @@ In this example we want to create a Minecraft world that is paved with melon-blo
 			for(int y = 0; y < 50; y++) {
 				world.setBlock(x, y, z, SimpleBlock.GLASS);
 			}
-		
+
 			// Set grass
 			world.setBlock(x, 50, z, SimpleBlock.GRASS);
 		}
 	}
 
-	// Now we create the door. It consists of 2 blocks, that's why we can't use a SimpleBlock 
+	// Now we create the door. It consists of 2 blocks, that's why we can't use a SimpleBlock
 	// here.
 	world.setBlock(50, 51, 50, DoorBlock.makeLower(DoorMaterial.OAK, Facing4State.EAST, false));
 	world.setBlock(50, 52, 50, DoorBlock.makeUpper(DoorMaterial.OAK, HingeSide.LEFT));
@@ -62,5 +68,5 @@ The world has been saved to the /world/ directory in our execution directory. We
 
 Known Issues
 ------
-- Not all blocks are implemented yet. See in the [Material.java](https://github.com/MorbZ/J2Blocks/blob/master/src/net/morbz/minecraft/blocks/Material.java) the blocks that have a check mark  
+- Not all blocks are implemented yet. See in the [Material.java](https://github.com/MorbZ/J2Blocks/blob/master/src/net/morbz/minecraft/blocks/Material.java) the blocks that have a check mark
 **Feel free to help and fix the issues by submitting a pull request.**
