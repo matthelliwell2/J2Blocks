@@ -95,7 +95,47 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 							setBlock(x, y, z, block);
 						}
 					}
+
+					calculateHeightMap();
+                    addSkyLight();
 				}
+			}
+		}
+	}
+
+
+	/**
+	 * Creates a new instance from a tag. Doesn't use the defaultLayers as this should have already been passed in
+	 * and used to create the default blocks when creating the chunk in the first place
+	 * @param tag The tag representation of this class
+	 */
+	public Chunk(IBlockContainer parent, Tag tag) {
+		this.parent = parent;
+
+		final Map<String, Tag> levelTag = ((CompoundTag)tag).getValue();
+		final CompoundTag compoundTag = (CompoundTag) levelTag.get("Level");
+		Map<String, Tag> tags = compoundTag.getValue();
+		int xcoord =  ((IntTag)tags.get("xPos")).getValue();
+		int zcoord =  ((IntTag)tags.get("zPos")).getValue();
+
+		// Chunk coords  number of chunk relative to origin of the world but due to a bug this class wants them
+		// relative to the containing region. Region coords need to have been set before this is called.
+		final Region region = (Region)parent;
+		xPos = xcoord - region.getX() * Region.CHUNKS_PER_REGION_SIDE;
+		zPos = zcoord - region.getZ() * Region.CHUNKS_PER_REGION_SIDE;
+
+		List sectionTags = ((ListTag)tags.get("Sections")).getValue();
+		for ( Object sectionTag: sectionTags) {
+			final Section section = new Section(this, (Tag)sectionTag);
+			sections[section.getY()] = section;
+		}
+
+		int[] heightMapArray =  ((IntArrayTag)tags.get("HeightMap")).getValue();
+		int i = 0;
+		for(int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
+			for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
+				heightMap[x][z] = heightMapArray[i] ;
+				i++;
 			}
 		}
 	}
@@ -131,6 +171,21 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 		int blockY = y % Section.SECTION_HEIGHT;
 		section.setBlock(x, blockY, z, block);
 	}
+
+
+    /**
+     * As we are setting all the blocks for a column (probably) we can recalculate the heightmap and skylight
+     * for this column so we don't have to go back to this region later on as this is slow if it needs to be
+     * loaded from disk
+     */
+    public void setBlocks(int x, int z, IBlock[] blocks) {
+        for ( int y = 0; y < blocks.length; ++y ) {
+            setBlock(x, y, z, blocks[y]);
+        }
+
+        calculateHeightMap(x, z);
+        addSkyLight(x, z);
+    }
 	
 	/**
 	 * {@inheritDoc}
@@ -200,13 +255,17 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	public void addSkyLight() {
 		for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
 			for(int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
-				int highestBlock = getHighestBlock(x, z);
-				for(int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
-					setSkyLight(x, y, z, World.DEFAULT_SKY_LIGHT);
-				}
+                addSkyLight(x, z);
 			}
 		}
 	}
+
+    private void addSkyLight(int x, int z) {
+        int highestBlock = getHighestBlock(x, z);
+        for(int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
+            setSkyLight(x, y, z, World.DEFAULT_SKY_LIGHT);
+        }
+    }
 	
 	/**
 	 * Returns the highest non transparent block. calculateHeightMap() has to be invoked before
@@ -272,44 +331,21 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 		}
 	}
 
-    /**
-     * Creates a new instance from a tag. Doesn't use the defaultLayers as this should have already been passed in
-	 * and used to create the default blocks when creating the chunk in the first place
-     * @param tag The tag representation of this class
-     */
-    public Chunk(IBlockContainer parent, Tag tag) {
-        this.parent = parent;
-
-        final Map<String, Tag> levelTag = ((CompoundTag)tag).getValue();
-        final CompoundTag compoundTag = (CompoundTag) levelTag.get("Level");
-        Map<String, Tag> tags = compoundTag.getValue();
-        int xcoord =  ((IntTag)tags.get("xPos")).getValue();
-        int zcoord =  ((IntTag)tags.get("zPos")).getValue();
-
-        // Chunk coords  number of chunk relative to origin of the world but due to a bug this class wants them
-        // relative to the containing region. Region coords need to have been set before this is called.
-        final Region region = (Region)parent;
-        xPos = xcoord - region.getX() * Region.CHUNKS_PER_REGION_SIDE;
-        zPos = zcoord - region.getZ() * Region.CHUNKS_PER_REGION_SIDE;
-
-        List sectionTags = ((ListTag)tags.get("Sections")).getValue();
-        for ( Object sectionTag: sectionTags) {
-            final Section section = new Section(this, (Tag)sectionTag);
-            sections[section.getY()] = section;
-        }
-
-        int[] heightMapArray =  ((IntArrayTag)tags.get("HeightMap")).getValue();
-        int i = 0;
-        for(int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
-            for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
-                heightMap[x][z] = heightMapArray[i] ;
-                i++;
+    public void calculateHeightMap(int x, int z) {
+        // Iterate sections from top to bottom
+        for(int y = SECTIONS_PER_CHUNK - 1; y >= 0; y--) {
+            Section section = sections[y];
+            if(section != null) {
+                if(heightMap[x][z] == 0) {
+                    int height = section.getHighestBlock(x, z);
+                    if(height != -1) {
+                        heightMap[x][z] = y * Section.SECTION_HEIGHT + height + 1;
+                    }
+                }
             }
         }
     }
-
-
-	/**
+    /**
 	 * {@inheritDoc}
 	 */
 	@Override

@@ -24,8 +24,6 @@ package net.morbz.minecraft.world;
 * SOFTWARE.
 */
 
-import java.io.Serializable;
-
 import net.morbz.minecraft.blocks.Material;
 
 /**
@@ -36,7 +34,7 @@ import net.morbz.minecraft.blocks.Material;
  * 
  * @author MorbZ
  */
-public class DefaultLayers implements Serializable {
+public class DefaultLayers {
 	private final Material[] layers = new Material[World.MAX_HEIGHT];
 	
 	/**

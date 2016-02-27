@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 
 import com.google.common.collect.ImmutableSet;
@@ -62,16 +64,16 @@ public class RegionCache extends LinkedHashMap<Point, Region> {
      * key set to avoid ConcurrentModificationException as we iterate through and stuff is added or removed from memory.
      * If you add new regions whilst iterating through this keyset, the set may no longer be valid but you won't get
      * any indication of this
-     * @return
+     * @return Returned sorted set of keys. They are sorted to try and reduce the amount of loading from disk that
+     * is done as iterate through them
      */
     @Override
     public Set<Point> keySet() {
-        return ImmutableSet.<Point>builder()
-                .addAll(super.keySet())
-                .addAll(getKeysOfAllRegionFiles())
-                .build();
+        final Set<Point> result = new TreeSet<>(Comparator.comparing(Point::getX).thenComparing(Point::getY));
+        result.addAll(super.keySet());
+        result.addAll(getKeysOfAllRegionFiles());
+        return result;
     }
-
 
     /**
      * Returns the keys of all the region files that have been saved to disk

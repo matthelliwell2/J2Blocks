@@ -24,15 +24,13 @@ package net.morbz.minecraft.blocks;
 * SOFTWARE.
 */
 
-import java.io.Serializable;
-
 /**
  * This class defines all the basic block with their IDs.
  * 
  * @author MorbZ
  */
 @SuppressWarnings("javadoc")
-public enum Material implements Serializable {
+public enum Material {
 	AIR(0, 1), // √
 	STONE(1, 0), // √
 	GRASS(2, 0), // √

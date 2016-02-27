@@ -91,13 +91,10 @@ public class Region implements IBlockContainer, Serializable {
 	public void setBlocks(int x, int z, IBlock[] blocks) {
         Chunk chunk = getChunk(x, z, true);
 
-        // Set block
         int blockX = x % Chunk.BLOCKS_PER_CHUNK_SIDE;
         int blockZ = z % Chunk.BLOCKS_PER_CHUNK_SIDE;
 
-        for ( int y = 0; y < blocks.length; ++y ) {
-            chunk.setBlock(blockX, y, blockZ, blocks[y]);
-        }
+        chunk.setBlocks(blockX, blockZ, blocks);
     }
 
 	/**

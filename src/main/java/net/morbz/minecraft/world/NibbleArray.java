@@ -24,7 +24,6 @@ package net.morbz.minecraft.world;
 * SOFTWARE.
 */
 
-import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -32,7 +31,7 @@ import java.util.Arrays;
  * 
  * @author MorbZ
  */
-class NibbleArray implements Serializable {
+class NibbleArray {
 	private final byte[] bytes;
 	private final int size;
 	
