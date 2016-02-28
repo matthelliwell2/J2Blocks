@@ -29,7 +29,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,7 +61,7 @@ public class World implements IBlockContainer {
 	public static final byte DEFAULT_SKY_LIGHT = 0xF;
 
     /** Cache of all the regions */
-	private final Map<Point, Region> regions;
+	private final RegionCache regions;
 
     private Path levelDir;
     private Path regionDir;
@@ -83,7 +82,7 @@ public class World implements IBlockContainer {
     public World(Level level, boolean updateExistingRegions) {
 		this.level = level;
         createDirectories(updateExistingRegions);
-		this.regions = new RegionCache(getRegionDir(), this::onRegionLoaded, 30);
+		this.regions = new RegionCache(regionDir, this::onRegionLoaded, 30);
         writeSessionLock();
 	}
 
@@ -101,7 +100,7 @@ public class World implements IBlockContainer {
 		this.layers = layers;
 
         createDirectories(updateExistingRegions);
-        this.regions = new RegionCache(getRegionDir(), this::onRegionLoaded, 30);
+        this.regions = new RegionCache(regionDir, this::onRegionLoaded, 30);
 
         writeSessionLock();
     }
@@ -213,19 +212,6 @@ public class World implements IBlockContainer {
             region.spreadSkyLight(light);
         }
 	}
-
-    private Path getRegionDir() {
-        try {
-            final Path dir = FileSystems.getDefault().getPath("worlds/" + level.getLevelName() + "/region");
-            if (!Files.exists(dir)) {
-                Files.createDirectories(dir);
-            }
-
-            return dir;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
 	/**
 	 * Saves the world in a new directory within the /worlds/ directory. The name of the directory 

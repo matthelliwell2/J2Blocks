@@ -6,57 +6,58 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
 
 import com.google.common.collect.ImmutableSet;
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import net.morbz.minecraft.world.Region;
 
 /**
  * Implements an LRU cache of regions
  */
-public class RegionCache extends LinkedHashMap<Point, Region> {
+public class RegionCache {
     private final BiConsumer<Point, Region> regionLoadedCallback;
-    private final int cacheCapacity;
     private final Path regionDir;
+
+    private ConcurrentLinkedHashMap<Point, Region> cache;
 
 
     public RegionCache(final Path regionDir, final BiConsumer<Point, Region> regionLoadedCallback, final int cacheCapacity) {
-        super(cacheCapacity);
+        final ConcurrentLinkedHashMap.Builder<Point, Region> builder = new ConcurrentLinkedHashMap.Builder<>();
+        cache = builder
+                .maximumWeightedCapacity(cacheCapacity)
+                .listener(this::saveRegion)
+                .build();
+
         this.regionLoadedCallback = regionLoadedCallback;
-        this.cacheCapacity = cacheCapacity;
         this.regionDir = regionDir;
     }
 
-    /**
-     * If the cache size is graeter than the specified size then we write the region to disk before removing it
-     * from memory
-     */
-    @Override
-    protected boolean removeEldestEntry(final Map.Entry<Point, Region> eldest) {
-        if (size() > cacheCapacity) {
-            saveRegion(eldest);
-            return true;
-        } else {
-            return false;
-        }
-    }
 
     /**
      * If the region isn't in memory, it will try and load it from disk
      */
-    @Override
-    public Region get(final Object key) {
-        Region region = super.get(key);
+    public Region get(final Point key) {
+        Region region = cache.get(key);
         if ( region == null ) {
             region = loadRegion(key);
-            put((Point) key, region);
+            if ( region != null ) {
+                cache.put(key, region);
+            }
         }
 
         return region;
+    }
+
+    public void put(Point key, Region region) {
+        cache.put(key, region);
+    }
+
+    public Set<Map.Entry<Point, Region>> entrySet() {
+        return cache.entrySet();
     }
 
     /**
@@ -67,10 +68,9 @@ public class RegionCache extends LinkedHashMap<Point, Region> {
      * @return Returned sorted set of keys. They are sorted to try and reduce the amount of loading from disk that
      * is done as iterate through them
      */
-    @Override
     public Set<Point> keySet() {
         final Set<Point> result = new TreeSet<>(Comparator.comparing(Point::getX).thenComparing(Point::getY));
-        result.addAll(super.keySet());
+        result.addAll(cache.keySet());
         result.addAll(getKeysOfAllRegionFiles());
         return result;
     }
@@ -92,13 +92,11 @@ public class RegionCache extends LinkedHashMap<Point, Region> {
     }
 
 
-    private void saveRegion(final Map.Entry<Point, Region> eldest) {
+    private void saveRegion(final Point point, final Region region) {
         try {
-            final Point point = eldest.getKey();
             final Path regionFile = getRegionFileFromPoint(point);
-            final Region region = eldest.getValue();
             region.writeToFile(regionFile.toFile());
-            System.out.println("Saved region " + point);
+//            System.out.println("Evicted region " + point);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -111,7 +109,7 @@ public class RegionCache extends LinkedHashMap<Point, Region> {
             if (Files.exists(regionFile)) {
                 final Region region = new Region(null, point.x, point.y, null);
                 region.readFromFile(regionFile.toFile());
-                System.out.println("Loaded region " + point);
+//                System.out.println("Loaded region " + point);
                 regionLoadedCallback.accept(point, region);
                 return region;
             } else {
