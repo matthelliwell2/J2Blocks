@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import net.morbz.minecraft.blocks.IBlock;
 import net.morbz.minecraft.blocks.SimpleBlock;
 import org.junit.Test;
 
@@ -43,20 +44,26 @@ public class RegionTest {
     public void shouldReadComplexRegionFile() throws IOException {
         // given
         // Load a provided region
-        final File inputFile = new File("src/test/resources/r.722.694.mca");
-        final Region inputRegion = new Region(null, 722, 694, null);
+        final File inputFile = new File("src/test/resources/r.900.22.mca");
+        final Region inputRegion = new Region(null, 900, 22, null);
         inputRegion.readFromFile(inputFile);
+
+        final IBlock[] blocks = {SimpleBlock.BEDROCK, SimpleBlock.WATER,
+        SimpleBlock.AIR, SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.AIR,
+                SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.AIR,SimpleBlock.COBBLESTONE, SimpleBlock.GRASS};
+        inputRegion.setBlocks(141, 126, blocks);
 
         // Write the region to a new file
         final Path regionDir = Files.createTempDirectory("J2BlocksTest");
-        final Path regionFilePath = regionDir.resolve("r.722.694.2.mca");
+        final Path regionFilePath = regionDir.resolve("r.900.22.mca");
         final File outputRegionFile = regionFilePath.toFile();
         inputRegion.writeToFile(outputRegionFile);
 
         // when
         // Read in this region
-        final Region result = new Region(null, 722, 694, null);
+        final Region result = new Region(null, 900, 22, null);
         result.readFromFile(outputRegionFile);
+        result.setBlocks(141, 126, blocks);
 
         // then
         assertThat(result, is(inputRegion));

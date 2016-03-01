@@ -182,6 +182,16 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 			}
 		}
 	}
+
+	byte spreadSkylightDownwards(int x, int z, byte light) {
+        for (int y = SECTION_HEIGHT - 1; y >= 0; --y) {
+			// TODO
+//            increaseSkyLight(x, y, z, light);
+			spreadSkyLightForBlock(x, y, z, light);
+        }
+
+        return getSkyLight(x, 0, z);
+    }
 	
 	/**
 	 * Spreads the light from the given block. All adjacent blocks that have a lower light level

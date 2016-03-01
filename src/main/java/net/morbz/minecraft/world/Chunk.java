@@ -95,9 +95,6 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 							setBlock(x, y, z, block);
 						}
 					}
-
-					calculateHeightMap();
-                    addSkyLight();
 				}
 			}
 		}
@@ -183,8 +180,11 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
             setBlock(x, y, z, blocks[y]);
         }
 
+        heightMap[x][z] = 0;
         calculateHeightMap(x, z);
         addSkyLight(x, z);
+        // TODO
+        //spreadSkylightDownwards(x, z);
     }
 	
 	/**
@@ -247,6 +247,24 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 			}
 		}
 	}
+
+
+    /**
+     * Spreads skylight downwards after skylight added to everything above highest block. Calling this an optimisation
+     * when adding multiple blocks in a column as it can mean that we don't have to call spreadSkylight, which is very
+     * expense
+     */
+    private void spreadSkylightDownwards(int x, int z) {
+        final int highestBlock = getHighestBlock(x, z);
+        final int sectionY = highestBlock / Section.SECTION_HEIGHT;
+        byte light = World.DEFAULT_SKY_LIGHT;
+        for ( int y = sectionY; y >= 0; --y) {
+            final Section section = sections[sectionY];
+            if ( section != null ) {
+                light = section.spreadSkylightDownwards(x, z, light);
+            }
+        }
+    }
 	
 	/**
 	 * Adds the sky light. Starts from top the top of each column and sets sky light to full, up to 
@@ -339,7 +357,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
                 if(heightMap[x][z] == 0) {
                     int height = section.getHighestBlock(x, z);
                     if(height != -1) {
-                        heightMap[x][z] = y * Section.SECTION_HEIGHT + height + 1;
+                         heightMap[x][z] = y * Section.SECTION_HEIGHT + height + 1;
                     }
                 }
             }

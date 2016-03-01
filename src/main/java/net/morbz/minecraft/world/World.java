@@ -110,6 +110,10 @@ public class World implements IBlockContainer {
             return;
         }
 
+        if (x == 460_941 && z == 11_390) {
+            System.out.println("here");
+        }
+
         Region region = getRegion(x, z, true);
 
         // Set block
@@ -225,7 +229,6 @@ public class World implements IBlockContainer {
 	public void save(boolean spreadSkylight) {
         writeLevelFile();
 
-
         if ( recalculateSkyLight ) {
             calculateSkyLight();
         }
@@ -242,14 +245,16 @@ public class World implements IBlockContainer {
 		System.out.println("Done");
 	}
 
-    // Write level.dat
+    // Write level.dat if it doesn't already exist
     private void writeLevelFile() {
         try {
-            File levelFile = new File(levelDir.toFile(), "level.dat");
-            System.out.println("Writing level file: " + levelFile);
-            FileOutputStream fos = new FileOutputStream(levelFile);
-            try (NBTOutputStream nbtOut = new NBTOutputStream(fos, true)) {
-                nbtOut.writeTag(level.getTag());
+            File levelFile = levelDir.resolve("level.dat").toFile();
+            if ( !levelFile.exists()) {
+                System.out.println("Writing level file: " + levelFile);
+                FileOutputStream fos = new FileOutputStream(levelFile);
+                try (NBTOutputStream nbtOut = new NBTOutputStream(fos, true)) {
+                    nbtOut.writeTag(level.getTag());
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
