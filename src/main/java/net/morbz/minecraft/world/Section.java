@@ -185,12 +185,13 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 
 	byte spreadSkylightDownwards(int x, int z, byte light) {
         for (int y = SECTION_HEIGHT - 1; y >= 0; --y) {
-			// TODO
-//            increaseSkyLight(x, y, z, light);
-			spreadSkyLightForBlock(x, y, z, light);
+            light = increaseSkyLight(x, y, z, light);
+			if (light == 0) {
+				break;
+			}
         }
 
-        return getSkyLight(x, 0, z);
+        return light;
     }
 	
 	/**
@@ -209,28 +210,30 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 	/**
 	 * Updates the sky light if the current light level is lower than the given.
 	 */
-	private void increaseSkyLight(int x, int y, int z, byte light) {
+	private byte increaseSkyLight(int x, int y, int z, byte light) {
 		// Check if block is within bounds
 		if(!isInBounds(x, y, z)) {
-			return;
+			return 0;
 		}
 		
 		// Calculate new light level
 		byte transparency = getTransparency(x, y, z);
 		if(transparency == 0) {
-			return;
+			return 0;
 		} else if(transparency > 1) {
 			light -= transparency;
 		}
 		light--;
 		if(light < 1) {
-			return;
+			return 0;
 		}
 		
 		// Update is current light is lower
 		if(getSkyLight(x, y, z) < light) {
 			setSkyLight(x, y, z, light);
 		}
+
+		return light;
 	}
 	
 	private boolean isInBounds(int x, int y, int z) {

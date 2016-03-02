@@ -183,8 +183,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
         heightMap[x][z] = 0;
         calculateHeightMap(x, z);
         addSkyLight(x, z);
-        // TODO
-        //spreadSkylightDownwards(x, z);
+        spreadSkylightDownwards(x, z);
     }
 	
 	/**
@@ -262,6 +261,9 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
             final Section section = sections[sectionY];
             if ( section != null ) {
                 light = section.spreadSkylightDownwards(x, z, light);
+                if (light == 0) {
+                    break;
+                }
             }
         }
     }
@@ -280,7 +282,11 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 
     private void addSkyLight(int x, int z) {
         int highestBlock = getHighestBlock(x, z);
-        for(int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
+
+        // Make sure we've got a section in memory where we can add skylight otherwise if a section is full of blocks
+        // then it won't add any skylight and it will appear in shadow
+		getSection(highestBlock, true);
+		for(int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
             setSkyLight(x, y, z, World.DEFAULT_SKY_LIGHT);
         }
     }
