@@ -110,10 +110,6 @@ public class World implements IBlockContainer {
             return;
         }
 
-        if (x == 460_941 && z == 11_390) {
-            System.out.println("here");
-        }
-
         Region region = getRegion(x, z, true);
 
         // Set block
@@ -272,6 +268,13 @@ public class World implements IBlockContainer {
         }
 	}
 
+    /**
+     * Calculates the skylight for the region that contains the specified coords
+     */
+    public void calculateSkylightForRegion(int x, int z) {
+        final Region region = getRegion(x, z, false);
+        region.addSkyLight();
+    }
 
 	private void calculateSkyLight() {
 		for( final Point point : regions.keySet()) {

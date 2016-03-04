@@ -180,10 +180,11 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
             setBlock(x, y, z, blocks[y]);
         }
 
+        // Calculate the height map as we go to reduce the amount of iterating we have to do
         heightMap[x][z] = 0;
         calculateHeightMap(x, z);
-        addSkyLight(x, z);
-        spreadSkylightDownwards(x, z);
+//        addSkyLight(x, z);
+//        spreadSkylightDownwards(x, z);
     }
 	
 	/**
@@ -284,7 +285,8 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
         int highestBlock = getHighestBlock(x, z);
 
         // Make sure we've got a section in memory where we can add skylight otherwise if a section is full of blocks
-        // then it won't add any skylight and it will appear in shadow
+        // then it won't add any skylight and it will appear in shadow. Not sure if we really need this line but haven't
+		// tested removing it
 		getSection(highestBlock, true);
 		for(int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
             setSkyLight(x, y, z, World.DEFAULT_SKY_LIGHT);
