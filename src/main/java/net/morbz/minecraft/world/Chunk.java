@@ -183,8 +183,6 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
         // Calculate the height map as we go to reduce the amount of iterating we have to do
         heightMap[x][z] = 0;
         calculateHeightMap(x, z);
-//        addSkyLight(x, z);
-//        spreadSkylightDownwards(x, z);
     }
 	
 	/**
@@ -254,12 +252,20 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
      * when adding multiple blocks in a column as it can mean that we don't have to call spreadSkylight, which is very
      * expense
      */
+	public void spreadSkylightDownwards() {
+        for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
+            for (int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
+                spreadSkylightDownwards(x, z);
+            }
+        }
+    }
+
     private void spreadSkylightDownwards(int x, int z) {
         final int highestBlock = getHighestBlock(x, z);
         final int sectionY = highestBlock / Section.SECTION_HEIGHT;
         byte light = World.DEFAULT_SKY_LIGHT;
         for ( int y = sectionY; y >= 0; --y) {
-            final Section section = sections[sectionY];
+			final Section section = getSection(y, false);
             if ( section != null ) {
                 light = section.spreadSkylightDownwards(x, z, light);
                 if (light == 0) {
@@ -397,9 +403,13 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 		factory2.set(new IntTag("zPos", zcoord));
 		factory2.set(new LongTag("LastUpdate", System.currentTimeMillis()));
 		factory2.set(new ByteTag("V", (byte)1));
+
 		factory2.set(new ByteTag("LightPopulated", (byte)1));
 		factory2.set(new ByteTag("TerrainPopulated", (byte)1));
-		
+
+		factory2.set(new ListTagFactory("Entities", CompoundTag.class).getTag());
+		factory2.set(new ListTagFactory("TileEntities", CompoundTag.class).getTag());
+
 		// Make height map
 		int[] heightMapAry = new int[BLOCKS_PER_CHUNK_SIDE * BLOCKS_PER_CHUNK_SIDE];
 		int i = 0;

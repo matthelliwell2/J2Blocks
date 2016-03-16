@@ -25,18 +25,12 @@ package net.morbz.minecraft.world;
 */
 
 import java.awt.Point;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import net.morbz.minecraft.blocks.IBlock;
 import net.morbz.minecraft.level.Level;
-import org.jnbt.NBTOutputStream;
 import org.matthelliwell.minecraft.RegionCache;
 
 /**
@@ -63,13 +57,11 @@ public class World implements IBlockContainer {
     /** Cache of all the regions */
 	private final RegionCache regions;
 
-    private Path levelDir;
-    private Path regionDir;
-
     private final Level level;
 	private DefaultLayers layers;
 
     private boolean recalculateSkyLight = false;
+    private FileManager fileManager;
 
     /**
      * Creates a new instance.
@@ -79,11 +71,11 @@ public class World implements IBlockContainer {
      *                              allow you to update the regions already saved to disk. If false or the level directory
      *                              doesn't exist then it will create a new one
      */
-    public World(Level level, boolean updateExistingRegions) {
+    public World(Level level, boolean updateExistingRegions) throws IOException {
 		this.level = level;
-        createDirectories(updateExistingRegions);
-		this.regions = new RegionCache(regionDir, this::onRegionLoaded, 30);
-        writeSessionLock();
+        this.fileManager = new FileManager(level.getLevelName(), updateExistingRegions);
+		this.regions = new RegionCache(fileManager.getRegionDir(), this::onRegionLoaded, 30);
+        this.fileManager.writeSessionLock();
 	}
 
     /**
@@ -95,14 +87,14 @@ public class World implements IBlockContainer {
      *                              allow you to update the regions already saved to disk. If false or the level directory
      *                              doesn't exist then it will create a new one
      */
-    public World(Level level, DefaultLayers layers, boolean updateExistingRegions) {
+    public World(Level level, DefaultLayers layers, boolean updateExistingRegions) throws IOException {
 		this.level = level;
 		this.layers = layers;
 
-        createDirectories(updateExistingRegions);
-        this.regions = new RegionCache(regionDir, this::onRegionLoaded, 30);
+        this.fileManager = new FileManager(level.getLevelName(), updateExistingRegions);
+        this.regions = new RegionCache(fileManager.getRegionDir(), this::onRegionLoaded, 30);
 
-        writeSessionLock();
+        this.fileManager.writeSessionLock();
     }
 
 	public void setBlocks(int x, int z, IBlock[] blocks) {
@@ -223,7 +215,7 @@ public class World implements IBlockContainer {
      *                       and it speeds up the processing when you've got a large number of regions.
 	 */
 	public void save(boolean spreadSkylight) {
-        writeLevelFile();
+        fileManager.writeLevelFile(level);
 
         if ( recalculateSkyLight ) {
             calculateSkyLight();
@@ -241,32 +233,7 @@ public class World implements IBlockContainer {
 		System.out.println("Done");
 	}
 
-    // Write level.dat if it doesn't already exist
-    private void writeLevelFile() {
-        try {
-            File levelFile = levelDir.resolve("level.dat").toFile();
-            if ( !levelFile.exists()) {
-                System.out.println("Writing level file: " + levelFile);
-                FileOutputStream fos = new FileOutputStream(levelFile);
-                try (NBTOutputStream nbtOut = new NBTOutputStream(fos, true)) {
-                    nbtOut.writeTag(level.getTag());
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    // Write session.lock
-    private void writeSessionLock() {
-        File sessionLockFile = new File(levelDir.toFile(), "session.lock");
-        System.out.println("Writing session lock file: " + sessionLockFile);
-        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(sessionLockFile))) {
-            dos.writeLong(System.currentTimeMillis());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-	}
 
     /**
      * Calculates the skylight for the region that contains the specified coords
@@ -296,7 +263,7 @@ public class World implements IBlockContainer {
             for (Map.Entry<Point, Region> entry : regions.entrySet()) {
                 final Point point = entry.getKey();
                 final Region region = entry.getValue();
-                Path regionFile = regionDir.resolve("r." + point.x + "." + point.y + ".mca");
+                Path regionFile = fileManager.getRegionFile(point.x, point.y);
                 System.out.println("Writing region file: " + regionFile);
                 region.writeToFile(regionFile.toFile());
 
@@ -306,34 +273,6 @@ public class World implements IBlockContainer {
         }
     }
 	
-
-    private void createDirectories(boolean updateExistingRegions) {
-        try {
-            // Create worlds directory
-            final Path worldPath = Paths.get("worlds");
-
-            String levelName = level.getLevelName();
-            levelDir = worldPath.resolve(levelName);
-
-            if (Files.notExists(levelDir) || !updateExistingRegions) {
-                // create the level dir making sure it doesn't overwrite and existing dir
-                int count = 1;
-                while ( Files.exists(levelDir)) {
-                    levelDir = worldPath.resolve(levelName + count++);
-                }
-
-                Files.createDirectory(levelDir);
-            }
-
-            regionDir = levelDir.resolve("region");
-            if (Files.notExists(regionDir)) {
-                Files.createDirectory(regionDir);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private void onRegionLoaded(final Point point, final Region region) {
         region.setParent(this);
     }

@@ -73,6 +73,12 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
         blockData = new NibbleArray(BLOCKS_PER_SECTION);
         skyLight = new NibbleArray(BLOCKS_PER_SECTION);
 
+/*
+        for (int i = 0; i < BLOCKS_PER_SECTION; ++i) {
+            skyLight.set(i, (byte)255);
+        }
+*/
+
 		this.parent = parent;
 		this.y = y;
 	
@@ -183,6 +189,7 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		}
 	}
 
+
 	byte spreadSkylightDownwards(int x, int z, byte light) {
         for (int y = SECTION_HEIGHT - 1; y >= 0; --y) {
             light = increaseSkyLight(x, y, z, light);
@@ -229,11 +236,13 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		}
 		
 		// Update is current light is lower
-		if(getSkyLight(x, y, z) < light) {
+		byte currentLight = getSkyLight(x, y, z);
+		if(currentLight < light) {
 			setSkyLight(x, y, z, light);
+			return light;
+		} else {
+			return currentLight;
 		}
-
-		return light;
 	}
 	
 	private boolean isInBounds(int x, int y, int z) {

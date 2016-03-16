@@ -173,11 +173,13 @@ public class Region implements IBlockContainer, Serializable {
 				Chunk chunk = chunks[x][z];
 				if(chunk != null) {
 					chunk.addSkyLight();
+					// TODO
+                    //chunk.spreadSkylightDownwards();
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Returns the highest non transparent block. calculateHeightMap() has to be invoked before
 	 * calling this method to get actual results.
