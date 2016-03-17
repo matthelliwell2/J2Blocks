@@ -49,7 +49,7 @@ import org.jnbt.Tag;
  * 
  * @author MorbZ
  */
-class Chunk implements ITagProvider, IBlockContainer, Serializable {
+class Chunk implements ITagProvider, Serializable {
 	/**
 	 * Sections per chunk
 	 */
@@ -64,8 +64,9 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	private final int[][] heightMap = new int[BLOCKS_PER_CHUNK_SIDE][BLOCKS_PER_CHUNK_SIDE];
 	private final int xPos;
 	private final int zPos;
-	private final IBlockContainer parent;
-	
+	private final Region parent
+			;
+
 	/**
 	 * Creates a new instance.
 	 * 
@@ -74,7 +75,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	 * @param zPos The Z-coordinate within the region
 	 * @param layers The default layers. Can be 'null'
 	 */
-	public Chunk(IBlockContainer parent, int xPos, int zPos, DefaultLayers layers) {
+	public Chunk(Region parent, int xPos, int zPos, DefaultLayers layers) {
 		this.parent = parent;
 		this.xPos = xPos;
 		this.zPos = zPos;
@@ -106,7 +107,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	 * and used to create the default blocks when creating the chunk in the first place
 	 * @param tag The tag representation of this class
 	 */
-	public Chunk(IBlockContainer parent, Tag tag) {
+	public Chunk(Region parent, Tag tag) {
 		this.parent = parent;
 
 		final Map<String, Tag> levelTag = ((CompoundTag)tag).getValue();
@@ -117,13 +118,12 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 
 		// Chunk coords  number of chunk relative to origin of the world but due to a bug this class wants them
 		// relative to the containing region. Region coords need to have been set before this is called.
-		final Region region = (Region)parent;
-		xPos = xcoord - region.getX() * Region.CHUNKS_PER_REGION_SIDE;
-		zPos = zcoord - region.getZ() * Region.CHUNKS_PER_REGION_SIDE;
+        xPos = xcoord - parent.getX() * Region.CHUNKS_PER_REGION_SIDE;
+		zPos = zcoord - parent.getZ() * Region.CHUNKS_PER_REGION_SIDE;
 
 		List sectionTags = ((ListTag)tags.get("Sections")).getValue();
 		for ( Object sectionTag: sectionTags) {
-			final Section section = new Section(this, (Tag)sectionTag);
+			final Section section = new Section((Tag)sectionTag);
 			sections[section.getY()] = section;
 		}
 
@@ -138,20 +138,6 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	}
 
 
-	/**
-	 * @return The X-coordinate within the region
-	 */
-	public int getX() {
-		return xPos;
-	}
-	
-	/**
-	 * @return The Z-coordinate within the region
-	 */
-	public int getZ() {
-		return zPos;
-	}
-	
 	/**
 	 * Sets a block at the given position.
 	 * 
@@ -185,117 +171,18 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
         calculateHeightMap(x, z);
     }
 	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public byte getSkyLight(int x, int y, int z) {
-		// Get section
-		Section section = getSection(y, false);
-		
-		if(section != null) {
-			int blockY = y % Section.SECTION_HEIGHT;
-			return section.getSkyLight(x, blockY, z);
-		}
-		return World.DEFAULT_SKY_LIGHT;
-	}
-	
-	private void setSkyLight(int x, int y, int z, byte light) {
-		// Get section
-		Section section = getSection(y, false);
-		
-		if(section != null) {
-			int blockY = y % Section.SECTION_HEIGHT;
-			section.setSkyLight(x, blockY, z, light);
-		}
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public byte getSkyLightFromParent(IBlockContainer child, int childX, int childY, int childZ) {
-		// Get total Y
-		int y = ((Section)child).getY() * Section.SECTION_HEIGHT + childY;
-		if(y >= World.MAX_HEIGHT) {
-			return World.DEFAULT_SKY_LIGHT;
-		}
-		if(y < 0) {
-			return 0;
-		}
-		
-		// Which chunk?
-		if(childX >= 0 && childX < BLOCKS_PER_CHUNK_SIDE && childZ >= 0 && childZ < BLOCKS_PER_CHUNK_SIDE) {
-			// Same chunk
-			return getSkyLight(childX, y, childZ);
-		} else {
-			// Different chunk
-			return parent.getSkyLightFromParent(this, childX, y, childZ);
-		}
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void spreadSkyLight(byte light) {
-		for(Section section : sections) {
-			if(section != null) {
-				section.spreadSkyLight(light);
-			}
-		}
-	}
+    public void addSkyLight(int x, int z) {
+        int highestBlock = getHighestBlock(x, z);
 
+		for (int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
+            final Section section = getSection(y, false);
 
-    /**
-     * Spreads skylight downwards after skylight added to everything above highest block. Calling this an optimisation
-     * when adding multiple blocks in a column as it can mean that we don't have to call spreadSkylight, which is very
-     * expense
-     */
-	public void spreadSkylightDownwards() {
-        for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
-            for (int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
-                spreadSkylightDownwards(x, z);
-            }
-        }
-    }
-
-    private void spreadSkylightDownwards(int x, int z) {
-        final int highestBlock = getHighestBlock(x, z);
-        final int sectionY = highestBlock / Section.SECTION_HEIGHT;
-        byte light = World.DEFAULT_SKY_LIGHT;
-        for ( int y = sectionY; y >= 0; --y) {
-			final Section section = getSection(y, false);
-            if ( section != null ) {
-                light = section.spreadSkylightDownwards(x, z, light);
-                if (light == 0) {
+            if (section != null) {
+                if (section.addSkyLight(x, z, World.DEFAULT_SKY_LIGHT) <= 0) {
+                    // Once we have got no light to set, don't try and set the light for lower sections
                     break;
                 }
             }
-        }
-    }
-	
-	/**
-	 * Adds the sky light. Starts from top the top of each column and sets sky light to full, up to 
-	 * the first non-transparent block.
-	 */
-	public void addSkyLight() {
-		for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
-			for(int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
-                addSkyLight(x, z);
-			}
-		}
-	}
-
-    private void addSkyLight(int x, int z) {
-        int highestBlock = getHighestBlock(x, z);
-
-        // Make sure we've got a section in memory where we can add skylight otherwise if a section is full of blocks
-        // then it won't add any skylight and it will appear in shadow. Not sure if we really need this line but haven't
-		// tested removing it
-		getSection(highestBlock, true);
-		for(int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
-            setSkyLight(x, y, z, World.DEFAULT_SKY_LIGHT);
         }
     }
 	
@@ -307,7 +194,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 	 * @param z The Z-coordinate
 	 * @return The Y-coordinate of the highest block
 	 */
-	public int getHighestBlock(int x, int z) {
+	private int getHighestBlock(int x, int z) {
 		return heightMap[x][z];
 	}
 	
@@ -318,7 +205,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 		
 		// Create section
 		if(section == null && create) {
-			section = new Section(this, sectionY);
+			section = new Section(sectionY);
 			sections[sectionY] = section;
 		}
 		return section;
@@ -339,31 +226,8 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 		return false;
 	}
 	
-	/**
-	 * Calculates the height map.
-	 */
-	public void calculateHeightMap() {
-		// Iterate sections from top to bottom
-		for(int y = SECTIONS_PER_CHUNK - 1; y >= 0; y--) {
-			Section section = sections[y];
-			if(section != null) {
-				// Iterate X/Z-columns
-				for(int x = 0; x < BLOCKS_PER_CHUNK_SIDE; x++) {
-					for(int z = 0; z < BLOCKS_PER_CHUNK_SIDE; z++) {
-						// Update height
-						if(heightMap[x][z] == 0) {
-							int height = section.getHighestBlock(x, z);
-							if(height != -1) {
-								heightMap[x][z] = y * Section.SECTION_HEIGHT + height + 1;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
 
-    public void calculateHeightMap(int x, int z) {
+    private void calculateHeightMap(int x, int z) {
         // Iterate sections from top to bottom
         for(int y = SECTIONS_PER_CHUNK - 1; y >= 0; y--) {
             Section section = sections[y];
@@ -371,7 +235,8 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
                 if(heightMap[x][z] == 0) {
                     int height = section.getHighestBlock(x, z);
                     if(height != -1) {
-                         heightMap[x][z] = y * Section.SECTION_HEIGHT + height + 1;
+                        heightMap[x][z] = y * Section.SECTION_HEIGHT + height + 1;
+                        break;
                     }
                 }
             }
@@ -436,7 +301,7 @@ class Chunk implements ITagProvider, IBlockContainer, Serializable {
 
         if (xPos != chunk.xPos) return false;
         if (zPos != chunk.zPos) return false;
-        // Probably incorrect - comparing Object[] arrays with Arrays.equals
+
         if (!Arrays.equals(sections, chunk.sections)) return false;
         if (!Arrays.deepEquals(heightMap, chunk.heightMap)) return false;
         return true;

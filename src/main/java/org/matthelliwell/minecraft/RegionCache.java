@@ -107,7 +107,7 @@ public class RegionCache {
             final Point point = (Point) key;
             final Path regionFile = getRegionFileFromPoint(point);
             if (Files.exists(regionFile)) {
-                final Region region = new Region(null, point.x, point.y, null);
+                final Region region = new Region(point.x, point.y, null);
                 region.readFromFile(regionFile.toFile());
 //                System.out.println("Loaded region " + point);
                 regionLoadedCallback.accept(point, region);

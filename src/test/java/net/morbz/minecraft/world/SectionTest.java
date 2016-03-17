@@ -6,15 +6,13 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 
 public class SectionTest {
     @Test
     public void shouldCreateSectionFromTag() {
         // givem
-        final IBlockContainer parent = mock(IBlockContainer.class);
         final int ycoord = 10;
-        final Section section = new Section(parent, ycoord);
+        final Section section = new Section(ycoord);
         section.setBlock(1, 2, 3, SimpleBlock.GOLD_BLOCK);
         section.setBlock(2, 3, 4, SimpleBlock.DIAMOND_BLOCK);
         section.setBlock(3, 4, 5, SimpleBlock.GLASS);
@@ -27,7 +25,7 @@ public class SectionTest {
         final Tag tag = section.getTag();
 
         // when
-        final Section result = new Section(parent, tag);
+        final Section result = new Section(tag);
 
         // then
         assertThat(result, is(section));

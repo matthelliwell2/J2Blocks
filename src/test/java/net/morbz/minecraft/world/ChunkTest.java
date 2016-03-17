@@ -19,9 +19,6 @@ public class ChunkTest {
         chunk.setBlock(2, 20, 2, SimpleBlock.DIAMOND_BLOCK);
         chunk.setBlock(3, 30, 3, SimpleBlock.BRICK_BLOCK);
 
-        chunk.addSkyLight();
-        chunk.calculateHeightMap();
-
         final Tag tag = chunk.getTag();
 
         // when
@@ -29,7 +26,5 @@ public class ChunkTest {
 
         // then
         assertThat(result, is(chunk));
-
     }
-
 }

@@ -20,7 +20,7 @@ public class RegionTest {
         final Path regionFilePath = regionDir.resolve("r.1.2.mca");
         final File regionFile = regionFilePath.toFile();
 
-        final Region region = new Region(null, 1, 2, null);
+        final Region region = new Region(1, 2, null);
         region.setBlock(1, 10, 3, SimpleBlock.GRASS);
         region.setBlock(2, 11, 4, SimpleBlock.GLASS);
         region.setBlock(3, 12, 5, SimpleBlock.BRICK_BLOCK);
@@ -29,7 +29,7 @@ public class RegionTest {
 
         // when
         region.writeToFile(regionFile);
-        final Region result = new Region(null, 1, 2, null);
+        final Region result = new Region(1, 2, null);
         result.readFromFile(regionFile);
 
         // then
@@ -45,7 +45,7 @@ public class RegionTest {
         // given
         // Load a provided region
         final File inputFile = new File("src/test/resources/r.900.22.mca");
-        final Region inputRegion = new Region(null, 900, 22, null);
+        final Region inputRegion = new Region(900, 22, null);
         inputRegion.readFromFile(inputFile);
 
         final IBlock[] blocks = {SimpleBlock.BEDROCK, SimpleBlock.WATER,
@@ -61,12 +61,11 @@ public class RegionTest {
 
         // when
         // Read in this region
-        final Region result = new Region(null, 900, 22, null);
+        final Region result = new Region(900, 22, null);
         result.readFromFile(outputRegionFile);
         result.setBlocks(141, 126, blocks);
 
         // then
         assertThat(result, is(inputRegion));
     }
-
 }

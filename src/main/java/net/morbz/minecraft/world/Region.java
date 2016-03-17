@@ -40,7 +40,7 @@ import org.jnbt.NBTOutputStream;
  * 
  * @author MorbZ
  */
-public class Region implements IBlockContainer, Serializable {
+public class Region implements Serializable {
 	/**
 	 * Chunks per region side
 	 */
@@ -56,18 +56,14 @@ public class Region implements IBlockContainer, Serializable {
 	
 	private final int xPos;
 	private final int zPos;
-	transient private IBlockContainer parent;
-	
+
 	/**
 	 * Creates a new instance.
-	 * 
-	 * @param parent The parent block container
-	 * @param layers The default layers. Can be 'null'
-	 * @param xPos The X-coordinate within the world
+	 *  @param xPos The X-coordinate within the world
 	 * @param zPos The Z-coordinate within the world
+	 * @param layers The default layers. Can be 'null'
 	 */
-	public Region(IBlockContainer parent, int xPos, int zPos, DefaultLayers layers) {
-		this.parent = parent;
+	public Region(int xPos, int zPos, DefaultLayers layers) {
 		this.xPos = xPos;
 		this.zPos = zPos;
 		this.layers = layers;
@@ -115,90 +111,17 @@ public class Region implements IBlockContainer, Serializable {
 		chunk.setBlock(blockX, y, blockZ, block);
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public byte getSkyLight(int x, int y, int z) {
-		// Get chunk 
-		Chunk chunk = getChunk(x, z, false);
-		
+
+
+	public void addSkyLight(final int x, final int z) {
+		final Chunk chunk = getChunk(x, z, false);
 		if(chunk != null) {
 			int blockX = x % Chunk.BLOCKS_PER_CHUNK_SIDE;
 			int blockZ = z % Chunk.BLOCKS_PER_CHUNK_SIDE;
-			return chunk.getSkyLight(blockX, y, blockZ);
-		}
-		return World.DEFAULT_SKY_LIGHT;
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public byte getSkyLightFromParent(IBlockContainer child, int childX, int childY, int childZ) {
-		int x = ((Chunk)child).getX() * Chunk.BLOCKS_PER_CHUNK_SIDE + childX;
-		int z = ((Chunk)child).getZ() * Chunk.BLOCKS_PER_CHUNK_SIDE + childZ;
-		
-		// Same region?
-		if(x >= 0 && x < BLOCKS_PER_REGION_SIDE && z >= 0 && z < BLOCKS_PER_REGION_SIDE) {
-			return getSkyLight(x, childY, z);
-		} else {
-			// Pass to parent
-			return parent.getSkyLightFromParent(this, x, childY, z);
-		}
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void spreadSkyLight(byte light) {
-		for(int x = 0; x < CHUNKS_PER_REGION_SIDE; x++) {
-			for(int z = 0; z < CHUNKS_PER_REGION_SIDE; z++) {
-				Chunk chunk = chunks[x][z];
-				if(chunk != null) {
-					chunk.spreadSkyLight(light);
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Adds the sky light. Starts from top the top of each column and sets sky light to full, up to 
-	 * the first non-transparent block.
-	 */
-	public void addSkyLight() {
-		for(int x = 0; x < CHUNKS_PER_REGION_SIDE; x++) {
-			for(int z = 0; z < CHUNKS_PER_REGION_SIDE; z++) {
-				Chunk chunk = chunks[x][z];
-				if(chunk != null) {
-					chunk.addSkyLight();
-					// TODO
-                    //chunk.spreadSkylightDownwards();
-				}
-			}
+			chunk.addSkyLight(blockX, blockZ);
 		}
 	}
 
-	/**
-	 * Returns the highest non transparent block. calculateHeightMap() has to be invoked before
-	 * calling this method to get actual results.
-	 * 
-	 * @param x The X-coordinate
-	 * @param z The Z-coordinate
-	 * @return The Y-coordinate of the highest block
-	 */
-	public int getHighestBlock(int x, int z) {
-		// Get chunk 
-		Chunk chunk = getChunk(x, z, false);
-		if(chunk != null) {
-			int blockX = x % Chunk.BLOCKS_PER_CHUNK_SIDE;
-			int blockZ = z % Chunk.BLOCKS_PER_CHUNK_SIDE;
-			return chunk.getHighestBlock(blockX, blockZ);
-		}
-		return 0;
-	}
-	
 	private Chunk getChunk(int x, int z, boolean create) {
 		// Make chunk coords
 		int chunkX = x / Chunk.BLOCKS_PER_CHUNK_SIDE;
@@ -212,21 +135,7 @@ public class Region implements IBlockContainer, Serializable {
 		}
 		return chunk;
 	}
-	
-	/**
-	 * Calculates the height maps for all chunks.
-	 */
-	public void calculateHeightMap() {
-		for(int x = 0; x < CHUNKS_PER_REGION_SIDE; x++) {
-			for(int z = 0; z < CHUNKS_PER_REGION_SIDE; z++) {
-				Chunk chunk = chunks[x][z];
-				if(chunk != null) {
-					chunk.calculateHeightMap();
-				}
-			}
-		}
-	}
-	
+
 	/**
 	 * Writes this region to a file.
 	 * 
@@ -271,10 +180,6 @@ public class Region implements IBlockContainer, Serializable {
 
 	}
 
-	public void setParent(final IBlockContainer parent) {
-		this.parent = parent;
-	}
-
 	@Override
 	public boolean equals(final Object o) {
 		if (this == o) return true;
@@ -284,16 +189,6 @@ public class Region implements IBlockContainer, Serializable {
 
 		if (xPos != region.xPos) return false;
 		if (zPos != region.zPos) return false;
-
-        for (int i = 0; i < CHUNKS_PER_REGION_SIDE; ++i) {
-            for (int j = 0; j < CHUNKS_PER_REGION_SIDE; ++j) {
-                if (chunks[i][j] != null ) {
-                    if ( !chunks[i][j].equals(region.chunks[i][j])) {
-                        System.out.println("Different");
-                    }
-                }
-            }
-        }
 
 		if (!Arrays.deepEquals(chunks, region.chunks)) return false;
 		return layers != null ? layers.equals(region.layers) : region.layers == null;

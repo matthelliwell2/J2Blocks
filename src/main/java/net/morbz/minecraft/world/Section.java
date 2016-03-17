@@ -42,7 +42,7 @@ import org.jnbt.Tag;
  * 
  * @author MorbZ
  */
-class Section implements ITagProvider, IBlockContainer, Serializable {
+class Section implements ITagProvider, Serializable {
 	/**
 	 * The height in blocks of a section
 	 */
@@ -54,21 +54,19 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 	private static final int BLOCKS_PER_SECTION =
 		Chunk.BLOCKS_PER_CHUNK_SIDE * Chunk.BLOCKS_PER_CHUNK_SIDE * SECTION_HEIGHT;
 	
-	private byte[] blockIds;
+	private final byte[] blockIds;
 	private final byte[] transparency = new byte[BLOCKS_PER_SECTION];
-	private NibbleArray blockData;
-	private NibbleArray skyLight;
+	private final NibbleArray blockData;
+	private final NibbleArray skyLight;
 	private int blockCount = 0;
 	private final int y;
-	private final IBlockContainer parent;
-	
+
 	/**
 	 * Creates a new instance.
-	 * 
-	 * @param parent The parent block container
+	 *
 	 * @param y The Y-position within the chunk
 	 */
-	public Section(IBlockContainer parent, int y) {
+	public Section(int y) {
         blockIds = new byte[BLOCKS_PER_SECTION];
         blockData = new NibbleArray(BLOCKS_PER_SECTION);
         skyLight = new NibbleArray(BLOCKS_PER_SECTION);
@@ -79,7 +77,6 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
         }
 */
 
-		this.parent = parent;
 		this.y = y;
 	
 		// Set default transparency
@@ -134,16 +131,7 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		return transparency[index];
 	}
 	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public byte getSkyLight(int x, int y, int z) {
-		int index = getBlockIndex(x, y, z);
-		byte light = skyLight.get(index);
-		return light;
-	}
-	
+
 	/**
 	 * Sets the sky light level of the block at given position.
 	 * 
@@ -156,108 +144,30 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		int index = getBlockIndex(x, y, z);
 		skyLight.set(index, light);
 	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public byte getSkyLightFromParent(IBlockContainer child, int x, int y, int z) {
-		if(isInBounds(x, y, z)) {
-			// Block is within section bounds
-			return getSkyLight(x, y, z);
-		} else {
-			// Pass to parent
-			return parent.getSkyLightFromParent(this, x, y, z);
-		}
-	}
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void spreadSkyLight(byte light) {
-		// Iterate blocks with 1 offset to all sides to get light from adjacent sections
-		for(int x = -1; x <= Chunk.BLOCKS_PER_CHUNK_SIDE; x++) {
-			for(int y = -1; y <= SECTION_HEIGHT; y++) {
-				for(int z = -1; z <= Chunk.BLOCKS_PER_CHUNK_SIDE; z++) {
-					byte currentLight = getSkyLightFromParent(null, x, y, z);
-					if(currentLight == light) {
-						spreadSkyLightForBlock(x, y, z, light);
-					}
-				}
-			}
-		}
-	}
 
-
-	byte spreadSkylightDownwards(int x, int z, byte light) {
+    public byte addSkyLight(int x, int z, byte light) {
         for (int y = SECTION_HEIGHT - 1; y >= 0; --y) {
-            light = increaseSkyLight(x, y, z, light);
-			if (light == 0) {
-				break;
-			}
+            int index = getBlockIndex(x, y, z);
+            final byte t = getTransparency(x, y, z);
+            if (t > 1) {
+                light -= t;
+                light--;
+            } else if (t == 0) {
+                light = 0;
+            }
+
+            if (light > 0) {
+                skyLight.set(index, light);
+            } else if (light <= 0) {
+                break;
+            }
         }
 
         return light;
     }
+
 	
-	/**
-	 * Spreads the light from the given block. All adjacent blocks that have a lower light level
-	 * than the given will be updated.
-	 */
-	private void spreadSkyLightForBlock(int x, int y, int z, byte light) {
-		increaseSkyLight(x+1, y, z, light);
-		increaseSkyLight(x-1, y, z, light);
-		increaseSkyLight(x, y+1, z, light);
-		increaseSkyLight(x, y-1, z, light);
-		increaseSkyLight(x, y, z+1, light);
-		increaseSkyLight(x, y, z-1, light);
-	}
-	
-	/**
-	 * Updates the sky light if the current light level is lower than the given.
-	 */
-	private byte increaseSkyLight(int x, int y, int z, byte light) {
-		// Check if block is within bounds
-		if(!isInBounds(x, y, z)) {
-			return 0;
-		}
-		
-		// Calculate new light level
-		byte transparency = getTransparency(x, y, z);
-		if(transparency == 0) {
-			return 0;
-		} else if(transparency > 1) {
-			light -= transparency;
-		}
-		light--;
-		if(light < 1) {
-			return 0;
-		}
-		
-		// Update is current light is lower
-		byte currentLight = getSkyLight(x, y, z);
-		if(currentLight < light) {
-			setSkyLight(x, y, z, light);
-			return light;
-		} else {
-			return currentLight;
-		}
-	}
-	
-	private boolean isInBounds(int x, int y, int z) {
-		if(x < 0 || x > Chunk.BLOCKS_PER_CHUNK_SIDE - 1) {
-			return false;
-		}
-		if(y < 0 || y > SECTION_HEIGHT - 1) {
-			return false;
-		}
-		if(z < 0 || z > Chunk.BLOCKS_PER_CHUNK_SIDE - 1) {
-			return false;
-		}
-		return true;
-	}
-	
+
 	private int getBlockIndex(int x, int y, int z) {
 		int index = 0;
 		index += y * Chunk.BLOCKS_PER_CHUNK_SIDE * Chunk.BLOCKS_PER_CHUNK_SIDE;
@@ -312,8 +222,8 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 	/**
 	 * Creates new instance from tag
 	 * @param tag representation of this class
-     */
-	public Section(IBlockContainer parent, Tag tag) {
+	 */
+	public Section(Tag tag) {
 		final CompoundTag compoundTag = (CompoundTag)tag;
 		final Map<String, Tag> tags = compoundTag.getValue();
 		blockIds = ((ByteArrayTag)tags.get("Blocks")).getValue();
@@ -321,9 +231,7 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		skyLight = new NibbleArray(((ByteArrayTag)tags.get("SkyLight")).getValue());
         y = ((ByteTag)tags.get("Y")).getValue();
 
-        this.parent = parent;
-
-        blockCount = 0;
+		blockCount = 0;
         for (final byte blockId : blockIds) {
             if (blockId != 0) {
                 ++blockCount;
@@ -352,7 +260,6 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		if (blockData != null ? !blockData.equals(section.blockData) : section.blockData != null) return false;
 		if (skyLight != null ? !skyLight.equals(section.skyLight) : section.skyLight != null) return false;
 
-        // Don't compare the parent as we'll get a circular dependency
 		return true;
 
 	}
@@ -367,4 +274,5 @@ class Section implements ITagProvider, IBlockContainer, Serializable {
 		result = 31 * result + y;
 		return result;
 	}
+
 }
