@@ -61,7 +61,7 @@ class Chunk implements ITagProvider, Serializable {
 	public static final int BLOCKS_PER_CHUNK_SIDE = 16;
 	
 	private final Section[] sections = new Section[SECTIONS_PER_CHUNK];
-	private final int[][] heightMap = new int[BLOCKS_PER_CHUNK_SIDE][BLOCKS_PER_CHUNK_SIDE];
+	public final int[][] heightMap = new int[BLOCKS_PER_CHUNK_SIDE][BLOCKS_PER_CHUNK_SIDE];
 	private final int xPos;
 	private final int zPos;
 	private final Region parent
@@ -172,10 +172,8 @@ class Chunk implements ITagProvider, Serializable {
     }
 	
     public void addSkyLight(int x, int z) {
-        int highestBlock = getHighestBlock(x, z);
-
-		for (int y = World.MAX_HEIGHT - 1; y >= highestBlock; y--) {
-            final Section section = getSection(y, false);
+		for (int s = sections.length - 1; s >= 0; --s) {
+            final Section section = sections[s];
 
             if (section != null) {
                 if (section.addSkyLight(x, z, World.DEFAULT_SKY_LIGHT) <= 0) {
@@ -194,7 +192,7 @@ class Chunk implements ITagProvider, Serializable {
 	 * @param z The Z-coordinate
 	 * @return The Y-coordinate of the highest block
 	 */
-	private int getHighestBlock(int x, int z) {
+	public int getHighestBlock(int x, int z) {
 		return heightMap[x][z];
 	}
 	
@@ -257,7 +255,7 @@ class Chunk implements ITagProvider, Serializable {
 
 		// Chunk coords should be number of chunk relative to origin of the world not relative to the containing
 		// region
-		final Region region = (Region)parent;
+		final Region region = parent;
 		final int xcoord = region.getX() * Region.CHUNKS_PER_REGION_SIDE + xPos;
 		final int zcoord = region.getZ() * Region.CHUNKS_PER_REGION_SIDE + zPos;
 
@@ -301,6 +299,17 @@ class Chunk implements ITagProvider, Serializable {
 
         if (xPos != chunk.xPos) return false;
         if (zPos != chunk.zPos) return false;
+
+        // Debug stuff
+/*
+        for (int i = 0; i < sections.length; ++i) {
+            if (sections[i] != null) {
+                if (!sections[i].equals(chunk.sections[i])) {
+                    System.out.println("same = " + sections[i].equals(chunk.sections[i]));
+                }
+            }
+        }
+*/
 
         if (!Arrays.equals(sections, chunk.sections)) return false;
         if (!Arrays.deepEquals(heightMap, chunk.heightMap)) return false;

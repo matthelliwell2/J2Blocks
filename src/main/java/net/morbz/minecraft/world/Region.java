@@ -103,15 +103,25 @@ public class Region implements Serializable {
 	 */
 	public void setBlock(int x, int y, int z, IBlock block) {
 		// Get chunk 
-		Chunk chunk = getChunk(x, z, true);
+		final Chunk chunk = getChunk(x, z, true);
 		
 		// Set block
 		int blockX = x % Chunk.BLOCKS_PER_CHUNK_SIDE;
 		int blockZ = z % Chunk.BLOCKS_PER_CHUNK_SIDE;
 		chunk.setBlock(blockX, y, blockZ, block);
 	}
-	
 
+	public int getHighestBlock(int x, int z) {
+		final Chunk chunk = getChunk(x, z, false);
+		final int blockX = x % Chunk.BLOCKS_PER_CHUNK_SIDE;
+		final int blockZ = z % Chunk.BLOCKS_PER_CHUNK_SIDE;
+
+		return chunk.getHighestBlock(blockX, blockZ);
+	}
+
+	public Chunk[][] getChunks() {
+        return chunks;
+    }
 
 	public void addSkyLight(final int x, final int z) {
 		final Chunk chunk = getChunk(x, z, false);
@@ -189,6 +199,17 @@ public class Region implements Serializable {
 
 		if (xPos != region.xPos) return false;
 		if (zPos != region.zPos) return false;
+
+        // Debugging stuff
+/*
+        for (int i = 0; i < chunks.length; ++i) {
+            for (int j = 0; j < chunks[i].length; ++j) {
+                if (!chunks[i][j].equals(region.chunks[i][j])) {
+                    System.out.println("same = " + chunks[i][j].equals(region.chunks[i][j]));
+                }
+            }
+        }
+*/
 
 		if (!Arrays.deepEquals(chunks, region.chunks)) return false;
 		return layers != null ? layers.equals(region.layers) : region.layers == null;

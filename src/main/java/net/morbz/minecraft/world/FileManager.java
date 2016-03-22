@@ -33,7 +33,7 @@ public class FileManager {
                 levelDir = worldDir.resolve(levelName + count++);
             }
 
-            Files.createDirectory(levelDir);
+            Files.createDirectories(levelDir);
         }
 
         regionDir = levelDir.resolve("region");

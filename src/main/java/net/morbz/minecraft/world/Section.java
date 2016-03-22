@@ -257,7 +257,14 @@ class Section implements ITagProvider, Serializable {
 		if (y != section.y) return false;
 		if (!Arrays.equals(blockIds, section.blockIds)) return false;
 		if (!Arrays.equals(transparency, section.transparency)) return false;
-		if (blockData != null ? !blockData.equals(section.blockData) : section.blockData != null) return false;
+
+        // debug stuff
+/*		for (int i = 0; i < blockData.size(); ++i) {
+            if (blockData.get(i) != section.blockData.get(i)) {
+                System.out.println("same = " + (blockData.get(i) != section.blockData.get(i)));
+            }
+        }*/
+		// if (blockData != null ? !blockData.equals(section.blockData) : section.blockData != null) return false;
 		if (skyLight != null ? !skyLight.equals(section.skyLight) : section.skyLight != null) return false;
 
 		return true;

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 
 import net.morbz.minecraft.blocks.IBlock;
 import net.morbz.minecraft.blocks.SimpleBlock;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -68,4 +69,52 @@ public class RegionTest {
         // then
         assertThat(result, is(inputRegion));
     }
+
+    @Test
+    @Ignore
+    public void stuff() throws IOException {
+        compareRegions(640, 494);
+
+    }
+
+    private void compareRegions(int x, int z) throws IOException {
+        final File originFile = new File("src/test/resources/orig/r." + x + "." + z + ".mca");
+        final Region originRegion = new Region(x, z, null);
+        originRegion.readFromFile(originFile);
+
+        final File fixedFile = new File("src/test/resources/updated/r." + x + "." + z + ".mca");
+        final Region fixedRegion = new Region(x, z, null);
+        fixedRegion.readFromFile(fixedFile);
+
+        Chunk[][] originChunks = originRegion.getChunks();
+        Chunk[][] fixedChunks = fixedRegion.getChunks();
+
+        for (int i = 0; i < originChunks.length; ++i) {
+            for (int j = 0; j < originChunks[i].length; ++j) {
+                Chunk origChunk = originChunks[i][j];
+                Chunk fixedChunk = fixedChunks[i][j];
+                compareChunks(origChunk, fixedChunk);
+
+            }
+        }
+    }
+
+    private void compareChunks(final Chunk origChunk, final Chunk fixedChunk) {
+        for (int i = 0; i < origChunk.heightMap.length; ++i) {
+            for (int j = 0; j < origChunk.heightMap[i].length; ++j) {
+                if ( origChunk.heightMap[i][j] != fixedChunk.heightMap[i][j]) {
+                    System.out.println("Different was " +  origChunk.heightMap[i][j] + " now " + fixedChunk.heightMap[i][j]);
+                }
+            }
+        }
+    }
+
+    private int getRegionCoord(int coord) {
+        int regionCoord = coord % Region.BLOCKS_PER_REGION_SIDE;
+        if(regionCoord < 0) {
+            regionCoord += Region.BLOCKS_PER_REGION_SIDE;
+        }
+        return regionCoord;
+    }
+
 }

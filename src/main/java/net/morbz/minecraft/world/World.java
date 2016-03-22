@@ -86,13 +86,23 @@ public class World {
             return;
         }
 
-        Region region = getRegion(x, z, true);
+        final Region region = getRegion(x, z, true);
 
         // Set block
         int blockX = getRegionCoord(x);
         int blockZ = getRegionCoord(z);
 
         region.setBlocks(blockX, blockZ, blocks);
+    }
+
+    public int getHighestBlock(int x, int z) {
+        final Region region = getRegion(x, z, false);
+
+        // Set block
+        int blockX = getRegionCoord(x);
+        int blockZ = getRegionCoord(z);
+
+        return region.getHighestBlock(blockX, blockZ);
     }
 
 
@@ -145,6 +155,10 @@ public class World {
      */
     public void calculateSkylight(int x, int z) {
         final Region region = getRegion(x, z, false);
+
+		if (x == 329176 && z == 253014) {
+			System.out.println("here");
+		}
         region.addSkyLight(getRegionCoord(x), getRegionCoord(z));
     }
 
